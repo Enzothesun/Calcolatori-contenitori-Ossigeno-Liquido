@@ -1,85 +1,236 @@
-<script>
-/* =========================
-   CONFIGURAZIONE BASE
-========================= */
-const TOTAL_LITERS = 26500;
-const LED_COUNT = 8;
-const LITERS_PER_LED = TOTAL_LITERS / LED_COUNT;
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Calcolatore Autonomia – Contenitore O₂ (8 LED)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-/* =========================
-   ELEMENTI DOM
-========================= */
-const ledInput = document.getElementById("ledInput");
+<style>
+body{
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  background:#f4f7fb;
+  margin:0;
+  padding:40px;
+  color:#0b253a;
+}
+.wrapper{
+  max-width:900px;
+  margin:auto;
+  background:#fff;
+  border-radius:20px;
+  padding:32px;
+  box-shadow:0 10px 30px rgba(0,0,0,.1);
+}
+h1{margin-top:0}
+.sub{color:#6b7a8c;font-size:14px}
 
-const flow1Input = document.getElementById("flow1");
-const hours1Input = document.getElementById("hours1");
+.led-row{
+  display:flex;
+  gap:10px;
+  margin:20px 0 8px;
+}
+.led{
+  flex:1;
+  height:16px;
+  border-radius:10px;
+  background:#dfeee9;
+}
+.led.active.red{background:#ff8a80}
+.led.active.yellow{background:#ffd180}
+.led.active.green{background:#a7f3d0}
 
-const flow2Input = document.getElementById("flow2");
-const hours2Input = document.getElementById("hours2");
-
-const ledObservedEl = document.getElementById("ledObserved");
-const ledCalcEl = document.getElementById("ledCalc");
-
-const residualLitersEl = document.getElementById("residualLiters");
-const autonomyHoursEl = document.getElementById("autonomyHours");
-const autonomyDaysEl = document.getElementById("autonomyDays");
-const dailyConsumptionEl = document.getElementById("dailyConsumption");
-
-/* =========================
-   FUNZIONE PRINCIPALE
-========================= */
-function calculate() {
-  /* LED */
-  const ledObserved = Math.max(1, Math.min(LED_COUNT, Number(ledInput.value)));
-  const ledForCalc = Math.max(1, ledObserved - 1);
-
-  /* Terapia 1 */
-  const flow1 = Number(flow1Input.value) || 0;
-  const hours1 = Number(hours1Input.value) || 0;
-
-  /* Terapia 2 (opzionale) */
-  const flow2 = Number(flow2Input.value) || 0;
-  const hours2 = Number(hours2Input.value) || 0;
-
-  /* Consumo giornaliero totale */
-  const dailyConsumption =
-    (flow1 * hours1 * 60) +
-    (flow2 * hours2 * 60);
-
-  /* Litri residui */
-  const residualLiters = ledForCalc * LITERS_PER_LED;
-
-  /* Autonomia */
-  let autonomyHours = 0;
-  let autonomyDays = 0;
-
-  if (dailyConsumption > 0) {
-    autonomyDays = residualLiters / dailyConsumption;
-    autonomyHours = autonomyDays * 24;
-  }
-
-  /* =========================
-     OUTPUT
-  ========================= */
-  ledObservedEl.textContent = ledObserved;
-  ledCalcEl.textContent = ledForCalc;
-
-  residualLitersEl.textContent = Math.round(residualLiters).toLocaleString("it-IT");
-  dailyConsumptionEl.textContent = Math.round(dailyConsumption).toLocaleString("it-IT");
-
-  autonomyHoursEl.textContent = autonomyHours ? Math.round(autonomyHours) : "—";
-  autonomyDaysEl.textContent = autonomyDays ? autonomyDays.toFixed(1) : "—";
+.led-numbers{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#6b7a8c;
+  margin-bottom:14px;
 }
 
-/* =========================
-   EVENTI
-========================= */
-[
-  ledInput,
-  flow1Input, hours1Input,
-  flow2Input, hours2Input
-].forEach(el => el.addEventListener("input", calculate));
+.badges{
+  display:flex;
+  gap:12px;
+  margin-bottom:20px;
+}
+.badge{
+  background:#f1f5f9;
+  padding:10px 14px;
+  border-radius:12px;
+  font-size:14px;
+}
 
-/* CALCOLO INIZIALE */
-calculate();
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-bottom:20px;
+}
+.grid label{font-size:13px;color:#6b7a8c}
+.grid input{
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #cbd5e1;
+  font-size:15px;
+}
+
+.results{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:18px;
+  margin-top:20px;
+}
+.box{
+  background:#f8fafc;
+  border-radius:16px;
+  padding:20px;
+  text-align:center;
+}
+.box strong{font-size:28px;display:block}
+
+.footer{
+  margin-top:20px;
+  font-size:12px;
+  color:#6b7a8c;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+  <h1>Calcolatore Autonomia – Contenitore Base</h1>
+  <div class="sub">Stima prudenziale: si considera sempre <b>–1 LED</b> rispetto a quello osservato</div>
+
+  <!-- LED -->
+  <div class="led-row" id="ledRow"></div>
+  <div class="led-numbers">
+    <span>1</span><span>2</span><span>3</span><span>4</span>
+    <span>5</span><span>6</span><span>7</span><span>8</span>
+  </div>
+
+  <div class="badges">
+    <div class="badge">LED osservato: <b id="ledObserved">1</b></div>
+    <div class="badge">LED per calcolo: <b id="ledCalc">1</b></div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="grid">
+    <div>
+      <label>LED osservato (1–8)</label>
+      <input id="ledInput" type="number" min="1" max="8" value="1">
+    </div>
+
+    <div></div>
+
+    <div>
+      <label>Terapia 1 – Flusso (L/min)</label>
+      <input id="flow1" type="number" step="0.1" value="2">
+    </div>
+    <div>
+      <label>Terapia 1 – Ore/giorno</label>
+      <input id="hours1" type="number" value="24">
+    </div>
+
+    <div>
+      <label>Terapia 2 – Flusso (L/min)</label>
+      <input id="flow2" type="number" step="0.1" placeholder="opzionale">
+    </div>
+    <div>
+      <label>Terapia 2 – Ore/giorno</label>
+      <input id="hours2" type="number" placeholder="opzionale">
+    </div>
+  </div>
+
+  <!-- RISULTATI -->
+  <div class="results">
+    <div class="box">
+      Litri residui (stima)
+      <strong><span id="residualLiters">0</span> L</strong>
+    </div>
+    <div class="box">
+      Autonomia (ore)
+      <strong><span id="autonomyHours">0</span></strong>
+    </div>
+    <div class="box">
+      Autonomia (giorni)
+      <strong><span id="autonomyDays">0</span></strong>
+    </div>
+    <div class="box">
+      Consumo/giorno
+      <strong><span id="dailyConsumption">0</span> L</strong>
+    </div>
+  </div>
+
+  <div class="footer">
+    Ogni LED ≈ <b>3.312 L</b> (capacità totale 26.500 L)<br>
+    Colori indicativi: 1 rosso · 2–3 giallo · 4–8 verde
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const LED_LITERS = 3312;
+
+  const ledInput = document.getElementById("ledInput");
+  const flow1 = document.getElementById("flow1");
+  const hours1 = document.getElementById("hours1");
+  const flow2 = document.getElementById("flow2");
+  const hours2 = document.getElementById("hours2");
+
+  const ledObserved = document.getElementById("ledObserved");
+  const ledCalc = document.getElementById("ledCalc");
+  const residualLiters = document.getElementById("residualLiters");
+  const dailyConsumption = document.getElementById("dailyConsumption");
+  const autonomyHours = document.getElementById("autonomyHours");
+  const autonomyDays = document.getElementById("autonomyDays");
+  const ledRow = document.getElementById("ledRow");
+
+  function renderLED(n){
+    ledRow.innerHTML="";
+    for(let i=1;i<=8;i++){
+      const d=document.createElement("div");
+      d.className="led";
+      if(i<=n){
+        d.classList.add("active");
+        if(i===1) d.classList.add("red");
+        else if(i<=3) d.classList.add("yellow");
+        else d.classList.add("green");
+      }
+      ledRow.appendChild(d);
+    }
+  }
+
+  function calc(){
+    let observed = Math.min(Math.max(+ledInput.value||1,1),8);
+    let calcLed = Math.max(observed-1,1);
+
+    let f1 = +flow1.value||0;
+    let h1 = +hours1.value||0;
+    let f2 = +flow2.value||0;
+    let h2 = +hours2.value||0;
+
+    let daily = (f1*h1 + f2*h2) * 60;
+    let liters = calcLed * LED_LITERS;
+    let hours = daily>0 ? liters/daily*24 : 0;
+
+    ledObserved.textContent = observed;
+    ledCalc.textContent = calcLed;
+    residualLiters.textContent = Math.round(liters);
+    dailyConsumption.textContent = Math.round(daily);
+    autonomyHours.textContent = Math.round(hours);
+    autonomyDays.textContent = (hours/24).toFixed(1);
+
+    renderLED(observed);
+  }
+
+  document.querySelectorAll("input").forEach(i=>{
+    i.addEventListener("input", calc);
+  });
+
+  calc();
+});
 </script>
+
+</body>
+</html>
