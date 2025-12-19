@@ -1,472 +1,263 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calcolatore Autonomia – LED 8</title>
+<meta charset="UTF-8">
+<title>Calcolatore Autonomia – LED 8 (Doppia terapia)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    :root{
-      --bg:#f2f6fb;
-      --card:#ffffff;
-      --text:#0b253a;
-      --muted:#6b7a8c;
-      --line:#e7edf5;
-      --shadow:0 10px 28px rgba(0,0,0,.08);
-      --radius:18px;
-      --accent:#009A7E;
-      --accent2:#CFF8EE;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      padding: 28px 14px;
-    }
-    .wrap{
-      max-width: 980px;
-      margin: 0 auto;
-    }
-    h1{
-      margin: 0 0 6px;
-      text-align:center;
-      font-size: 28px;
-      letter-spacing:.2px;
-    }
-    .subtitle{
-      text-align:center;
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 18px;
-    }
-    .card{
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 18px;
-    }
-    .topGrid{
-      display:grid;
-      grid-template-columns: 1.3fr 1fr 1fr;
-      gap: 14px;
-      align-items: start;
-    }
-    @media (max-width: 880px){
-      .topGrid{grid-template-columns: 1fr}
-    }
-    .label{
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f3f7fb;
+  color: #0b253a;
+}
 
-    /* LED bar */
-    .ledBar{
-      display:flex;
-      gap:6px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .ledDot{
-      width: 18px;
-      height: 10px;
-      border-radius: 999px;
-      background: #d8e4f2;
-      border: 1px solid #cfe0f4;
-      position: relative;
-      cursor:pointer;
-      transition: transform .12s ease;
-    }
-    .ledDot:hover{ transform: translateY(-1px); }
-    .ledDot[data-zone="red"]{ background: #f5b6b6; border-color:#f0a0a0; }
-    .ledDot[data-zone="yellow"]{ background:#ffe3a4; border-color:#ffd985; }
-    .ledDot[data-zone="green"]{ background:#b8f2df; border-color:#9eead3; }
-    .ledDot.active{
-      outline: 3px solid rgba(0,154,126,.25);
-    }
-    .ledNums{
-      display:flex;
-      gap:10px;
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 11px;
-      padding-left: 2px;
-    }
-    .pill{
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: #f6fbff;
-      border: 1px solid var(--line);
-      font-size: 12px;
-      color: var(--text);
-      margin-top: 10px;
-      width: fit-content;
-    }
-    .pill b{ font-size: 13px; }
+.container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 24px;
+}
 
-    /* Inputs */
-    .field{
-      display:flex;
-      gap: 10px;
-      align-items:center;
-      padding: 12px;
-      border-radius: 14px;
-      border: 1px solid var(--line);
-      background: #fbfdff;
-    }
-    .field input{
-      width: 100%;
-      border: none;
-      outline: none;
-      background: transparent;
-      font-size: 14px;
-      color: var(--text);
-    }
-    .btnMini{
-      width: 34px;
-      height: 34px;
-      border: none;
-      border-radius: 10px;
-      cursor:pointer;
-      background: rgba(0,0,0,.06);
-      font-weight: 800;
-    }
-    .btnMini:hover{ background: rgba(0,0,0,.10); }
+.card {
+  background: white;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.12);
+}
 
-    /* Therapy block */
-    .therapyGrid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    @media (max-width: 880px){
-      .therapyGrid{grid-template-columns: 1fr}
-    }
-    .therapyTitle{
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap: 10px;
-      margin: 10px 0 8px;
-    }
-    .therapyTitle h3{
-      margin:0;
-      font-size: 14px;
-    }
-    .hint{
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 12px;
-    }
-    .divider{
-      height: 1px;
-      background: var(--line);
-      margin: 14px 0;
-    }
+h1 {
+  margin-top: 0;
+  font-size: 26px;
+}
 
-    /* Results */
-    .results{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-      margin-top: 14px;
-    }
-    @media (max-width: 880px){
-      .results{grid-template-columns: 1fr}
-    }
-    .resBox{
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 14px;
-      background: #fbfdff;
-      min-height: 92px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      text-align:center;
-    }
-    .resLabel{
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing:.3px;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-    }
-    .resValue{
-      font-size: 28px;
-      font-weight: 800;
-      line-height: 1;
-    }
-    .unit{
-      font-size: 12px;
-      color: var(--muted);
-      margin-left: 6px;
-      font-weight: 600;
-    }
+.subtitle {
+  font-size: 13px;
+  color: #6b7a8c;
+  margin-bottom: 24px;
+}
 
-    .foot{
-      margin-top: 12px;
-      font-size: 11px;
-      color: var(--muted);
-      text-align:left;
-      line-height: 1.35;
-    }
+/* LED BAR */
+.led-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
 
-    .barNote{
-      text-align:center;
-      margin-top: 10px;
-      font-size: 11px;
-      color: var(--muted);
-    }
-  </style>
+.led-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 11px;
+  color: #6b7a8c;
+}
+
+.led {
+  width: 34px;
+  height: 14px;
+  border-radius: 8px;
+  opacity: .35;
+}
+
+.led.red { background: #ff6b6b; }
+.led.yellow { background: #ffd166; }
+.led.green { background: #6ee7b7; }
+
+.led.active {
+  opacity: 1;
+  outline: 2px solid #0ea5a0;
+}
+
+.info-line {
+  display: flex;
+  gap: 16px;
+  margin: 14px 0 24px;
+  font-size: 13px;
+}
+
+.info-box {
+  background: #f1f5f9;
+  padding: 8px 14px;
+  border-radius: 12px;
+}
+
+/* INPUTS */
+.inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(240px,1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.input-group label {
+  font-size: 13px;
+  color: #475569;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 15px;
+}
+
+/* RESULTS */
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+  gap: 16px;
+}
+
+.result {
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+}
+
+.result strong {
+  font-size: 24px;
+  display: block;
+}
+
+.note {
+  margin-top: 18px;
+  font-size: 12px;
+  color: #6b7a8c;
+  line-height: 1.4;
+}
+</style>
 </head>
 
 <body>
-  <div class="wrap">
-    <h1>Calcolatore Autonomia – LED 8</h1>
-    <div class="subtitle">Stima prudenziale: si considera sempre <b>–1 LED</b> rispetto a quello osservato</div>
 
-    <div class="card">
+<div class="container">
+  <div class="card">
+    <h1>Calcolatore Autonomia – Contenitore Base</h1>
+    <div class="subtitle">
+      Stima prudenziale: si considera sempre <b>–1 LED</b> rispetto a quello osservato
+    </div>
 
-      <div class="topGrid">
+    <!-- LED -->
+    <div class="led-bar" id="ledBar">
+      <div class="led-wrap"><div class="led red"></div><span>1</span></div>
+      <div class="led-wrap"><div class="led yellow"></div><span>2</span></div>
+      <div class="led-wrap"><div class="led yellow"></div><span>3</span></div>
+      <div class="led-wrap"><div class="led green"></div><span>4</span></div>
+      <div class="led-wrap"><div class="led green"></div><span>5</span></div>
+      <div class="led-wrap"><div class="led green"></div><span>6</span></div>
+      <div class="led-wrap"><div class="led green"></div><span>7</span></div>
+      <div class="led-wrap"><div class="led green"></div><span>8</span></div>
+    </div>
 
-        <!-- LED -->
-        <div>
-          <div class="label"><b>LED acceso (osservato)</b> [1–8]</div>
+    <div class="info-line">
+      <div class="info-box">LED osservato: <b id="ledObs">6</b></div>
+      <div class="info-box">LED per calcolo: <b id="ledCalc">5</b></div>
+    </div>
 
-          <div class="ledBar" id="ledBar" aria-label="Selezione LED">
-            <!-- 1 rosso, 2-3 giallo, 4-8 verde -->
-          </div>
-          <div class="ledNums" aria-hidden="true">
-            <span style="width:18px;text-align:center;">1</span>
-            <span style="width:18px;text-align:center;">2</span>
-            <span style="width:18px;text-align:center;">3</span>
-            <span style="width:18px;text-align:center;">4</span>
-            <span style="width:18px;text-align:center;">5</span>
-            <span style="width:18px;text-align:center;">6</span>
-            <span style="width:18px;text-align:center;">7</span>
-            <span style="width:18px;text-align:center;">8</span>
-          </div>
-
-          <div class="pill"><span>LED osservato:</span> <b id="ledObs">6</b></div>
-          <div class="pill"><span>LED per calcolo:</span> <b id="ledCalc">5</b></div>
-
-          <div class="barNote">Colori: 1 rosso • 2–3 giallo • 4–8 verde</div>
-        </div>
-
-        <!-- Terapia 1 -->
-        <div>
-          <div class="therapyTitle">
-            <h3>Terapia 1 (obbligatoria)</h3>
-          </div>
-
-          <div class="label">Flusso (L/min)</div>
-          <div class="field">
-            <button class="btnMini" type="button" onclick="stepNum('flow1', -0.5)">−</button>
-            <input id="flow1" type="number" min="0" step="0.5" value="2" />
-            <button class="btnMini" type="button" onclick="stepNum('flow1', 0.5)">+</button>
-          </div>
-
-          <div class="label" style="margin-top:10px;">Ore di terapia al giorno</div>
-          <div class="field">
-            <button class="btnMini" type="button" onclick="stepNum('hours1', -1)">−</button>
-            <input id="hours1" type="number" min="0" max="24" step="1" value="24" />
-            <button class="btnMini" type="button" onclick="stepNum('hours1', 1)">+</button>
-          </div>
-        </div>
-
-        <!-- Terapia 2 -->
-        <div>
-          <div class="therapyTitle">
-            <h3>Terapia 2 (opzionale)</h3>
-          </div>
-
-          <div class="label">Flusso (L/min)</div>
-          <div class="field">
-            <button class="btnMini" type="button" onclick="stepNum('flow2', -0.5)">−</button>
-            <input id="flow2" type="number" min="0" step="0.5" value="0" />
-            <button class="btnMini" type="button" onclick="stepNum('flow2', 0.5)">+</button>
-          </div>
-
-          <div class="label" style="margin-top:10px;">Ore di terapia al giorno</div>
-          <div class="field">
-            <button class="btnMini" type="button" onclick="stepNum('hours2', -1)">−</button>
-            <input id="hours2" type="number" min="0" max="24" step="1" value="0" />
-            <button class="btnMini" type="button" onclick="stepNum('hours2', 1)">+</button>
-          </div>
-
-          <div class="hint">Compilare solo se il paziente utilizza flussi diversi nella giornata.</div>
-        </div>
-
+    <!-- INPUT -->
+    <div class="inputs">
+      <div class="input-group">
+        <label>LED osservato (1–8)</label>
+        <input type="number" id="ledInput" min="1" max="8" value="6">
       </div>
 
-      <div class="divider"></div>
-
-      <div class="results">
-        <div class="resBox">
-          <div class="resLabel">Litri residui (stima prudenziale)</div>
-          <div class="resValue"><span id="litriResidui">16.560</span><span class="unit">L</span></div>
-        </div>
-
-        <div class="resBox">
-          <div class="resLabel">Autonomia (ore)</div>
-          <div class="resValue"><span id="autonomiaOre">138</span></div>
-        </div>
-
-        <div class="resBox">
-          <div class="resLabel">Autonomia (giorni)</div>
-          <div class="resValue"><span id="autonomiaGiorni">5,8</span></div>
-        </div>
-
-        <div class="resBox">
-          <div class="resLabel">Consumo/giorno</div>
-          <div class="resValue"><span id="consumoGiorno">2880</span><span class="unit">L</span></div>
-        </div>
+      <div class="input-group">
+        <label>Terapia 1 – Flusso (L/min)</label>
+        <input type="number" id="flow1" value="2" step="0.1">
       </div>
 
-      <div class="foot">
-        <div><b>Nota:</b> l’autonomia si basa sul <b>consumo complessivo giornaliero</b> (Terapia 1 + eventuale Terapia 2).</div>
-        <div style="margin-top:6px;">
-          <b>Config da validare/agganciare:</b> capacità totale e litri per LED devono essere gli stessi del calcolatore ufficiale già in uso.
-        </div>
-        <div style="margin-top:6px; opacity:.9;">© Calcolatore autonomia – uso informativo</div>
+      <div class="input-group">
+        <label>Terapia 1 – Ore/giorno</label>
+        <input type="number" id="hours1" value="12">
       </div>
 
+      <div class="input-group">
+        <label>Terapia 2 – Flusso (L/min)</label>
+        <input type="number" id="flow2" value="4" step="0.1">
+      </div>
+
+      <div class="input-group">
+        <label>Terapia 2 – Ore/giorno</label>
+        <input type="number" id="hours2" value="4">
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results">
+      <div class="result">
+        Litri residui (stima)<br>
+        <strong id="liters">16.560</strong> L
+      </div>
+      <div class="result">
+        Autonomia (ore)<br>
+        <strong id="hours">138</strong>
+      </div>
+      <div class="result">
+        Autonomia (giorni)<br>
+        <strong id="days">5,8</strong>
+      </div>
+      <div class="result">
+        Consumo/giorno<br>
+        <strong id="daily">2880</strong> L
+      </div>
+    </div>
+
+    <div class="note">
+      Ogni LED ≈ <b>3.312 L</b> (capacità totale 26.500 L).<br>
+      Colori indicativi: 1 rosso · 2–3 giallo · 4–8 verde.
     </div>
   </div>
+</div>
 
 <script>
-  /***********************
-   * CONFIG (DA SETTARE)
-   ***********************
-   * Qui mettiamo i numeri "ufficiali" appena me li confermi.
-   * Per ora uso valori di esempio COERENTI con lo screenshot:
-   * - capacità totale 26.500 L
-   * - 8 LED -> 3.312,5 L per LED (approssimato)
-   */
-  const CONFIG = {
-    totalLiters: 26500,
-    ledsTotal: 8,
-    litersPerLed: 26500 / 8,   // 3312.5
-    prudentialMinusLed: 1
-  };
+const LED_LITERS = 3312;
 
-  // Stato
-  let ledObserved = 6;
+function update() {
+  const ledObs = Math.min(8, Math.max(1, +ledInput.value));
+  const ledCalc = Math.max(1, ledObs - 1);
 
-  // Build LED bar
-  const ledBar = document.getElementById('ledBar');
-  function ledZone(i){
-    if (i === 1) return 'red';
-    if (i === 2 || i === 3) return 'yellow';
-    return 'green'; // 4-8
-  }
+  ledObsEl.textContent = ledObs;
+  ledCalcEl.textContent = ledCalc;
 
-  function renderLedBar(){
-    ledBar.innerHTML = '';
-    for (let i=1; i<=CONFIG.ledsTotal; i++){
-      const dot = document.createElement('div');
-      dot.className = 'ledDot' + (i === ledObserved ? ' active' : '');
-      dot.dataset.led = i;
-      dot.dataset.zone = ledZone(i);
-      dot.title = `LED ${i}`;
-      dot.onclick = () => {
-        ledObserved = i;
-        renderLedBar();
-        updateAll();
-      };
-      ledBar.appendChild(dot);
-    }
-  }
-
-  function clamp(n, min, max){
-    return Math.max(min, Math.min(max, n));
-  }
-
-  function getLedCalc(){
-    // prudenziale: almeno 1
-    return clamp(ledObserved - CONFIG.prudentialMinusLed, 1, CONFIG.ledsTotal);
-  }
-
-  function litersResidual(){
-    return getLedCalc() * CONFIG.litersPerLed;
-  }
-
-  function dailyConsumptionLiters(){
-    const f1 = parseFloat(document.getElementById('flow1').value || '0');
-    const h1 = parseFloat(document.getElementById('hours1').value || '0');
-    const f2 = parseFloat(document.getElementById('flow2').value || '0');
-    const h2 = parseFloat(document.getElementById('hours2').value || '0');
-
-    // L/min * ore * 60 = L/giorno
-    const c1 = f1 * h1 * 60;
-    const c2 = f2 * h2 * 60;
-
-    return Math.max(0, c1 + c2);
-  }
-
-  function formatIt(n, decimals=0){
-    const opts = { minimumFractionDigits: decimals, maximumFractionDigits: decimals };
-    return n.toLocaleString('it-IT', opts);
-  }
-
-  function updateAll(){
-    const ledCalc = getLedCalc();
-    document.getElementById('ledObs').textContent = ledObserved;
-    document.getElementById('ledCalc').textContent = ledCalc;
-
-    const residui = litersResidual();
-    const consumo = dailyConsumptionLiters();
-
-    document.getElementById('litriResidui').textContent = formatIt(residui, 0);
-
-    document.getElementById('consumoGiorno').textContent = formatIt(consumo, 0);
-
-    let ore = 0;
-    let giorni = 0;
-
-    if (consumo > 0){
-      giorni = residui / consumo;
-      ore = giorni * 24;
-    }
-
-    // ore intere, giorni 1 decimale
-    document.getElementById('autonomiaOre').textContent = formatIt(ore, 0);
-    document.getElementById('autonomiaGiorni').textContent = formatIt(giorni, 1);
-  }
-
-  // step buttons
-  function stepNum(id, delta){
-    const el = document.getElementById(id);
-    let v = parseFloat(el.value || '0');
-    v = isNaN(v) ? 0 : v;
-    v += delta;
-
-    // clamp ore 0-24
-    if (id.startsWith('hours')) v = clamp(v, 0, 24);
-    if (id.startsWith('flow')) v = clamp(v, 0, 50);
-
-    // fix float .5
-    el.value = (Math.round(v*2)/2).toString();
-    updateAll();
-  }
-
-  // listeners
-  ['flow1','hours1','flow2','hours2'].forEach(id=>{
-    const el = document.getElementById(id);
-    el.addEventListener('input', updateAll);
-    el.addEventListener('change', updateAll);
+  document.querySelectorAll('.led').forEach((l,i)=>{
+    l.classList.toggle('active', i < ledObs);
   });
 
-  // init
-  renderLedBar();
-  updateAll();
+  const liters = ledCalc * LED_LITERS;
+
+  const daily =
+    (flow1.value * hours1.value * 60) +
+    (flow2.value * hours2.value * 60);
+
+  const hours = daily ? liters / (daily / 24) : 0;
+
+  litersEl.textContent = liters.toLocaleString();
+  dailyEl.textContent = Math.round(daily);
+  hoursEl.textContent = Math.round(hours);
+  daysEl.textContent = (hours / 24).toFixed(1).replace('.',',');
+}
+
+const ledInput = document.getElementById('ledInput');
+const flow1 = document.getElementById('flow1');
+const hours1 = document.getElementById('hours1');
+const flow2 = document.getElementById('flow2');
+const hours2 = document.getElementById('hours2');
+
+const ledObsEl = document.getElementById('ledObs');
+const ledCalcEl = document.getElementById('ledCalc');
+const litersEl = document.getElementById('liters');
+const dailyEl = document.getElementById('daily');
+const hoursEl = document.getElementById('hours');
+const daysEl = document.getElementById('days');
+
+[ledInput,flow1,hours1,flow2,hours2].forEach(i =>
+  i.addEventListener('input', update)
+);
+
+update();
 </script>
 
 </body>
