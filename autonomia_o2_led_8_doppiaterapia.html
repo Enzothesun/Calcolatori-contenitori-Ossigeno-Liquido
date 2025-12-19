@@ -1,265 +1,85 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-<meta charset="UTF-8">
-<title>Calcolatore Autonomia – LED 8 (Doppia terapia)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #f3f7fb;
-  color: #0b253a;
-}
-
-.container {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 24px;
-}
-
-.card {
-  background: white;
-  border-radius: 18px;
-  padding: 28px;
-  box-shadow: 0 10px 28px rgba(0,0,0,.12);
-}
-
-h1 {
-  margin-top: 0;
-  font-size: 26px;
-}
-
-.subtitle {
-  font-size: 13px;
-  color: #6b7a8c;
-  margin-bottom: 24px;
-}
-
-/* LED BAR */
-.led-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.led-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 11px;
-  color: #6b7a8c;
-}
-
-.led {
-  width: 34px;
-  height: 14px;
-  border-radius: 8px;
-  opacity: .35;
-}
-
-.led.red { background: #ff6b6b; }
-.led.yellow { background: #ffd166; }
-.led.green { background: #6ee7b7; }
-
-.led.active {
-  opacity: 1;
-  outline: 2px solid #0ea5a0;
-}
-
-.info-line {
-  display: flex;
-  gap: 16px;
-  margin: 14px 0 24px;
-  font-size: 13px;
-}
-
-.info-box {
-  background: #f1f5f9;
-  padding: 8px 14px;
-  border-radius: 12px;
-}
-
-/* INPUTS */
-.inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 18px;
-  margin-bottom: 28px;
-}
-
-
-.input-group label {
-  font-size: 13px;
-  color: #475569;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 10px;
-  margin-top: 6px;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
-  font-size: 15px;
-}
-
-/* RESULTS */
-.results {
-  display: grid;
-  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
-  gap: 16px;
-}
-
-.result {
-  background: #f8fafc;
-  border-radius: 14px;
-  padding: 18px;
-  text-align: center;
-}
-
-.result strong {
-  font-size: 24px;
-  display: block;
-}
-
-.note {
-  margin-top: 18px;
-  font-size: 12px;
-  color: #6b7a8c;
-  line-height: 1.4;
-}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-  <div class="card">
-    <h1>Calcolatore Autonomia – Contenitore Base</h1>
-    <div class="subtitle">
-      Stima prudenziale: si considera sempre <b>–1 LED</b> rispetto a quello osservato
-    </div>
-
-    <!-- LED -->
-    <div class="led-bar" id="ledBar">
-      <div class="led-wrap"><div class="led red"></div><span>1</span></div>
-      <div class="led-wrap"><div class="led yellow"></div><span>2</span></div>
-      <div class="led-wrap"><div class="led yellow"></div><span>3</span></div>
-      <div class="led-wrap"><div class="led green"></div><span>4</span></div>
-      <div class="led-wrap"><div class="led green"></div><span>5</span></div>
-      <div class="led-wrap"><div class="led green"></div><span>6</span></div>
-      <div class="led-wrap"><div class="led green"></div><span>7</span></div>
-      <div class="led-wrap"><div class="led green"></div><span>8</span></div>
-    </div>
-
-    <div class="info-line">
-      <div class="info-box">LED osservato: <b id="ledObs">6</b></div>
-      <div class="info-box">LED per calcolo: <b id="ledCalc">5</b></div>
-    </div>
-
-    <!-- INPUT -->
-    <div class="inputs">
-      <div class="input-group">
-        <label>LED osservato (1–8)</label>
-        <input type="number" id="ledInput" min="1" max="8" value="6">
-      </div>
-
-      <div class="input-group">
-        <label>Terapia 1 – Flusso (L/min)</label>
-        <input type="number" id="flow1" value="2" step="0.1">
-      </div>
-
-      <div class="input-group">
-        <label>Terapia 1 – Ore/giorno</label>
-        <input type="number" id="hours1" value="12">
-      </div>
-
-      <div class="input-group">
-        <label>Terapia 2 – Flusso (L/min)</label>
-        <input type="number" id="flow2" value="4" step="0.1">
-      </div>
-
-      <div class="input-group">
-        <label>Terapia 2 – Ore/giorno</label>
-        <input type="number" id="hours2" value="4">
-      </div>
-    </div>
-
-    <!-- RESULTS -->
-    <div class="results">
-      <div class="result">
-        Litri residui (stima)<br>
-        <strong id="liters">16.560</strong> L
-      </div>
-      <div class="result">
-        Autonomia (ore)<br>
-        <strong id="hours">138</strong>
-      </div>
-      <div class="result">
-        Autonomia (giorni)<br>
-        <strong id="days">5,8</strong>
-      </div>
-      <div class="result">
-        Consumo/giorno<br>
-        <strong id="daily">2880</strong> L
-      </div>
-    </div>
-
-    <div class="note">
-      Ogni LED ≈ <b>3.312 L</b> (capacità totale 26.500 L).<br>
-      Colori indicativi: 1 rosso · 2–3 giallo · 4–8 verde.
-    </div>
-  </div>
-</div>
-
 <script>
-const LED_LITERS = 3312;
+/* =========================
+   CONFIGURAZIONE BASE
+========================= */
+const TOTAL_LITERS = 26500;
+const LED_COUNT = 8;
+const LITERS_PER_LED = TOTAL_LITERS / LED_COUNT;
 
-function update() {
-  const ledObs = Math.min(8, Math.max(1, +ledInput.value));
-  const ledCalc = Math.max(1, ledObs - 1);
+/* =========================
+   ELEMENTI DOM
+========================= */
+const ledInput = document.getElementById("ledInput");
 
-  ledObsEl.textContent = ledObs;
-  ledCalcEl.textContent = ledCalc;
+const flow1Input = document.getElementById("flow1");
+const hours1Input = document.getElementById("hours1");
 
-  document.querySelectorAll('.led').forEach((l,i)=>{
-    l.classList.toggle('active', i < ledObs);
-  });
+const flow2Input = document.getElementById("flow2");
+const hours2Input = document.getElementById("hours2");
 
-  const liters = ledCalc * LED_LITERS;
+const ledObservedEl = document.getElementById("ledObserved");
+const ledCalcEl = document.getElementById("ledCalc");
 
-  const daily =
-    (flow1.value * hours1.value * 60) +
-    (flow2.value * hours2.value * 60);
+const residualLitersEl = document.getElementById("residualLiters");
+const autonomyHoursEl = document.getElementById("autonomyHours");
+const autonomyDaysEl = document.getElementById("autonomyDays");
+const dailyConsumptionEl = document.getElementById("dailyConsumption");
 
-  const hours = daily ? liters / (daily / 24) : 0;
+/* =========================
+   FUNZIONE PRINCIPALE
+========================= */
+function calculate() {
+  /* LED */
+  const ledObserved = Math.max(1, Math.min(LED_COUNT, Number(ledInput.value)));
+  const ledForCalc = Math.max(1, ledObserved - 1);
 
-  litersEl.textContent = liters.toLocaleString();
-  dailyEl.textContent = Math.round(daily);
-  hoursEl.textContent = Math.round(hours);
-  daysEl.textContent = (hours / 24).toFixed(1).replace('.',',');
+  /* Terapia 1 */
+  const flow1 = Number(flow1Input.value) || 0;
+  const hours1 = Number(hours1Input.value) || 0;
+
+  /* Terapia 2 (opzionale) */
+  const flow2 = Number(flow2Input.value) || 0;
+  const hours2 = Number(hours2Input.value) || 0;
+
+  /* Consumo giornaliero totale */
+  const dailyConsumption =
+    (flow1 * hours1 * 60) +
+    (flow2 * hours2 * 60);
+
+  /* Litri residui */
+  const residualLiters = ledForCalc * LITERS_PER_LED;
+
+  /* Autonomia */
+  let autonomyHours = 0;
+  let autonomyDays = 0;
+
+  if (dailyConsumption > 0) {
+    autonomyDays = residualLiters / dailyConsumption;
+    autonomyHours = autonomyDays * 24;
+  }
+
+  /* =========================
+     OUTPUT
+  ========================= */
+  ledObservedEl.textContent = ledObserved;
+  ledCalcEl.textContent = ledForCalc;
+
+  residualLitersEl.textContent = Math.round(residualLiters).toLocaleString("it-IT");
+  dailyConsumptionEl.textContent = Math.round(dailyConsumption).toLocaleString("it-IT");
+
+  autonomyHoursEl.textContent = autonomyHours ? Math.round(autonomyHours) : "—";
+  autonomyDaysEl.textContent = autonomyDays ? autonomyDays.toFixed(1) : "—";
 }
 
-const ledInput = document.getElementById('ledInput');
-const flow1 = document.getElementById('flow1');
-const hours1 = document.getElementById('hours1');
-const flow2 = document.getElementById('flow2');
-const hours2 = document.getElementById('hours2');
+/* =========================
+   EVENTI
+========================= */
+[
+  ledInput,
+  flow1Input, hours1Input,
+  flow2Input, hours2Input
+].forEach(el => el.addEventListener("input", calculate));
 
-const ledObsEl = document.getElementById('ledObs');
-const ledCalcEl = document.getElementById('ledCalc');
-const litersEl = document.getElementById('liters');
-const dailyEl = document.getElementById('daily');
-const hoursEl = document.getElementById('hours');
-const daysEl = document.getElementById('days');
-
-[ledInput,flow1,hours1,flow2,hours2].forEach(i =>
-  i.addEventListener('input', update)
-);
-
-update();
+/* CALCOLO INIZIALE */
+calculate();
 </script>
-
-</body>
-</html>
