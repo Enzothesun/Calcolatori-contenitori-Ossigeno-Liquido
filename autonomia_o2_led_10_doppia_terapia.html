@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Autonomia O₂ Liquido – 10 LED</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root{
+  --accent:#009A7E;
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --text:#0b253a;
+  --muted:#6b7a8c;
+  --radius:18px;
+  --shadow:0 10px 28px rgba(0,0,0,.15);
+}
+
+body{
+  margin:0;
+  font-family:"Segoe UI",system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+.wrapper{
+  max-width:720px;
+  margin:30px auto;
+  padding:20px;
+}
+
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  padding:26px;
+  box-shadow:var(--shadow);
+}
+
+h1{
+  margin:0 0 6px;
+  font-size:24px;
+}
+
+.subtitle{
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:20px;
+}
+
+.section{
+  margin-bottom:22px;
+}
+
+.section h2{
+  font-size:18px;
+  margin-bottom:10px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+label{
+  font-size:13px;
+  color:var(--muted);
+}
+
+input, select{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #cfe7e2;
+  font-size:14px;
+}
+
+input[type=number]{
+  appearance:textfield;
+}
+
+.full{
+  grid-column:1 / -1;
+}
+
+.result{
+  margin-top:20px;
+  padding:18px;
+  border-radius:14px;
+  background:#eafff7;
+  border:1px solid #b7e9df;
+  font-size:15px;
+}
+
+.result strong{
+  font-size:18px;
+}
+
+.footer-note{
+  margin-top:14px;
+  font-size:12px;
+  color:var(--muted);
+}
+</style>
+</head>
+
+<body>
+<div class="wrapper">
+  <div class="card">
+
+    <h1>Autonomia O₂ Liquido – 10 LED</h1>
+    <div class="subtitle">
+      Calcolo autonomia con una o due terapie giornaliere
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="section">
+      <h2>1️⃣ Livello contenitore</h2>
+      <label>Quale LED è acceso (1 → 10)</label>
+      <select id="led">
+        <option value="">Seleziona LED</option>
+        <option value="1">1 – Rosso</option>
+        <option value="2">2 – Giallo</option>
+        <option value="3">3 – Giallo</option>
+        <option value="4">4 – Verde</option>
+        <option value="5">5 – Verde</option>
+        <option value="6">6 – Verde</option>
+        <option value="7">7 – Verde</option>
+        <option value="8">8 – Verde</option>
+        <option value="9">9 – Verde</option>
+        <option value="10">10 – Verde</option>
+      </select>
+    </div>
+
+    <!-- TERAPIA 1 -->
+    <div class="section">
+      <h2>2️⃣ Terapia principale</h2>
+      <div class="grid">
+        <div>
+          <label>Flusso (L/min)</label>
+          <input type="number" step="0.1" id="flow1">
+        </div>
+        <div>
+          <label>Ore/giorno</label>
+          <input type="number" step="0.1" id="hours1">
+        </div>
+      </div>
+    </div>
+
+    <!-- TERAPIA 2 -->
+    <div class="section">
+      <h2>3️⃣ Seconda terapia (opzionale)</h2>
+      <div class="grid">
+        <div>
+          <label>Flusso (L/min)</label>
+          <input type="number" step="0.1" id="flow2">
+        </div>
+        <div>
+          <label>Ore/giorno</label>
+          <input type="number" step="0.1" id="hours2">
+        </div>
+      </div>
+    </div>
+
+    <!-- RISULTATO -->
+    <div class="result" id="result">
+      Inserisci i dati per calcolare l’autonomia.
+    </div>
+
+    <div class="footer-note">
+      Il calcolo considera sempre il consumo reale: anche con LED verdi,
+      terapie elevate possono ridurre significativamente l’autonomia.
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* Capacità residua stimata per LED (kg equivalenti) */
+const ledMap = {
+  1: 2,
+  2: 5,
+  3: 8,
+  4: 12,
+  5: 16,
+  6: 20,
+  7: 24,
+  8: 28,
+  9: 32,
+  10: 36
+};
+
+const inputs = document.querySelectorAll("select,input");
+
+inputs.forEach(i => i.addEventListener("input", calculate));
+
+function calculate(){
+  const led = document.getElementById("led").value;
+  const f1 = parseFloat(flow1.value) || 0;
+  const h1 = parseFloat(hours1.value) || 0;
+  const f2 = parseFloat(flow2.value) || 0;
+  const h2 = parseFloat(hours2.value) || 0;
+
+  if(!led || f1 <= 0 || h1 <= 0){
+    result.innerHTML = "Inserisci almeno LED e Terapia principale.";
+    return;
+  }
+
+  const consumo1 = f1 * 60 * h1;
+  const consumo2 = f2 > 0 && h2 > 0 ? f2 * 60 * h2 : 0;
+  const consumoTot = consumo1 + consumo2;
+
+  const autonomiaOre = (ledMap[led] * 1000) / consumoTot;
+  const giorni = (autonomiaOre / 24).toFixed(1);
+
+  result.innerHTML = `
+    <strong>Autonomia stimata:</strong><br>
+    ${autonomiaOre.toFixed(1)} ore<br>
+    (~ ${giorni} giorni)
+  `;
+}
+</script>
+
+</body>
+</html>
