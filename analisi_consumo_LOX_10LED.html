@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Analisi consumo LOX – 10 LED</title>
+<style>
+:root{--bg:#f4f7fb;--surface:#fff;--text:#102c42;--muted:#627487;--accent:#008f7b;--border:#dfe8ef;--danger:#9b3332;--warn:#906110}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;font-size:15px}
+main{max-width:930px;margin:28px auto;padding:0 18px 45px}
+h1{font-size:26px;margin:0 0 6px;color:#003b70}h2{font-size:17px;margin:0 0 15px;color:#003b70}p{line-height:1.5}
+.subtitle{color:var(--muted);margin:0 0 22px}.card{background:var(--surface);border-radius:18px;padding:24px;margin-top:18px;box-shadow:0 5px 20px rgba(30,60,90,.07)}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 18px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+label{font-weight:600;font-size:13px;color:#34516a}
+input,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid #cbdbe5;background:#fff;font-size:15px;color:var(--text)}
+input:focus,select:focus{outline:2px solid #95d6cb;outline-offset:1px}
+.hint,.fine{font-size:12px;color:var(--muted);line-height:1.5}.hint{margin-top:10px}
+.actions{margin-top:20px;display:flex;flex-wrap:wrap;gap:10px}
+button{padding:12px 18px;border-radius:10px;border:none;background:var(--accent);color:white;font-weight:700;font-size:14px;cursor:pointer}
+button.secondary{background:#e8f2f0;color:#006e5f}
+.result{display:none}.result.visible{display:block}
+.metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:10px 0 15px}
+.metric{background:#f3f7fa;padding:16px;border-radius:12px;min-width:0}
+.metric .name{font-size:12px;color:var(--muted);line-height:1.4}.metric .num{font-weight:750;font-size:23px;margin-top:6px;overflow-wrap:anywhere}
+.leds{display:flex;gap:4px;margin:14px 0 6px}.led{height:17px;flex:1;border-radius:3px;background:#e2e7eb}
+.led.active.green{background:#32a778}.led.active.yellow{background:#e6b54d}.led.active.red{background:#e35e5d}
+.alert{border-left:4px solid #d5a138;background:#fff9ec;padding:13px 15px;border-radius:9px;margin:15px 0;line-height:1.5}
+.alert.high{border-color:#c65151;background:#fff1f1}.alert.low{border-color:#21987c;background:#e9f7f2}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.info{margin:15px 0 0;padding:14px;background:#f4f8fc;border-radius:9px;color:#405b72;font-size:13px;line-height:1.6}
+.err{color:#aa2d32;font-weight:600}.foot{margin:22px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
+small{font-size:12px}details{margin-top:16px}summary{cursor:pointer;color:#34516a;font-weight:650}details .fields{margin-top:12px}
+.call-check{margin:15px 0;padding:17px 18px;border:1px solid #c6d8e8;background:#f1f7fc;border-radius:12px}
+.call-check h3{margin:0 0 7px;font-size:15px;color:#003b70}
+.call-check p{margin:0 0 10px;font-size:13px;color:#425b70;line-height:1.5}
+.call-check ul{margin:0 0 10px;padding-left:20px;line-height:1.55;font-size:14px}
+.call-check li+li{margin-top:8px}
+.call-check .conclusion{border-top:1px solid #c6d8e8;padding-top:10px;font-size:13px;font-weight:650;color:#344f67}
+
+@media(max-width:660px){main{margin-top:18px}.fields,.metric-grid,.row{grid-template-columns:1fr}.card{padding:18px}h1{font-size:23px}}
+@media print{body{background:#fff}.card{box-shadow:none;border:1px solid #ddd}.actions{display:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Analisi consumo LOX – 10 LED</h1>
+  <p class="subtitle">Confronto teorico tra terapia, LED osservato e prossima consegna. Uso interno: supporto orientativo, non diagnosi di perdita.</p>
+
+  <section class="card">
+    <h2>Dati raccolti durante la chiamata</h2>
+    <div class="fields">
+      <div class="field"><label for="last">Data ultima consegna</label><input id="last" type="date" required></div>
+      <div class="field"><label for="next">Data prossima consegna</label><input id="next" type="date" required></div>
+      <div class="field"><label for="led">LED acceso adesso</label><select id="led"><option value="">Seleziona</option><option value="1">1 – Rosso</option><option value="2">2 – Giallo</option><option value="3">3 – Giallo</option><option value="4">4 – Verde</option><option value="5">5 – Verde</option><option value="6">6 – Verde</option><option value="7">7 – Verde</option><option value="8">8 – Verde</option><option value="9">9 – Verde</option><option value="10">10 – Verde</option></select></div>
+      <div class="field"><label for="flow1">Terapia principale – flusso (L/min)</label><input id="flow1" type="number" min="0.1" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label for="hours1">Terapia principale – ore/giorno</label><input id="hours1" type="number" min="0.1" max="24" step="0.5" inputmode="decimal"></div>
+    </div>
+    <details><summary>Seconda terapia (facoltativa)</summary><div class="fields">
+      <div class="field"><label for="flow2">Seconda terapia – flusso (L/min)</label><input id="flow2" type="number" min="0" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label for="hours2">Seconda terapia – ore/giorno</label><input id="hours2" type="number" min="0" max="24" step="0.5" inputmode="decimal"></div>
+    </div><p class="fine">Se usate entrambe, le due terapie vengono sommate. Inserire valori coerenti con la prescrizione.</p></details>
+    <div class="hint">Il calcolo usa la <strong>data odierna del dispositivo</strong>. Poiché non conosciamo gli orari delle consegne, i giorni sono approssimati per calendario.</div>
+    <div class="actions"><button id="calc" type="button">Calcola la valutazione</button></div>
+    <div id="errors" class="err" aria-live="polite" style="margin-top:12px"></div>
+  </section>
+
+  <section id="output" class="card result" aria-live="polite">
+    <h2>Valutazione teorica</h2>
+    <h2 style="margin-top:4px">Autonomia prudenziale dal momento della chiamata</h2>
+    <div class="row">
+      <div class="metric"><div class="name">Autonomia con la sola terapia dichiarata</div><div class="num" id="usual"></div></div>
+      <div class="metric"><div class="name">Autonomia se prosegue il ritmo di consumo stimato (prudenziale)</div><div class="num" id="projected"></div></div>
+    </div>
+    <div id="message" class="alert"></div>
+    <h2 style="margin-top:25px">Dettaglio della valutazione</h2>
+    <div id="ledStrip" class="leds" aria-hidden="true"></div>
+    <p id="ledLegend" class="fine"></p>
+    <div class="metric-grid">
+      <div class="metric"><div class="name">Ossigeno che dovrebbe essere rimasto</div><div class="num" id="theo"></div></div>
+      <div class="metric"><div class="name">Ossigeno residuo stimato dal LED</div><div class="num" id="actual"></div></div>
+      <div class="metric"><div class="name">LED atteso (scala convenzionale)</div><div class="num" id="expected"></div></div>
+    </div>
+    <div class="row">
+      <div class="metric"><div class="name">Consumo aggiuntivo medio stimato</div><div class="num" id="extra"></div><div class="fine" id="extraHint"></div></div>
+      <div class="metric"><div class="name">Giorni mancanti alla prossima consegna</div><div class="num" id="toNext"></div><div class="fine">Basati sulle sole date, non sugli orari.</div></div>
+    </div>
+    <aside class="call-check" aria-label="Verifiche da effettuare con il paziente">
+      <h3>Prima di interpretare lo scostamento: verifiche con il paziente</h3>
+      <p>Il risultato è teorico. Durante la stessa chiamata, verificare sempre:</p>
+      <ul>
+        <li><strong>Terapia realmente effettuata.</strong> Il paziente ha rispettato flusso e ore indicati? In uno o più giorni ha aumentato il flusso o usato l’ossigeno più a lungo (anche su indicazione medica)?</li>
+        <li><strong>Utilizzo dello stroller.</strong> Ha ricaricato il portatile dal contenitore base? Quante volte, indicativamente, dall’ultima consegna?</li>
+      </ul>
+      <div class="conclusion">Un consumo superiore al previsto non dimostra una perdita: aumenti di terapia e ricariche dello stroller possono spiegare parte dello scostamento. In presenza di dubbi o anomalie, applicare la procedura di verifica ed escalation prevista.</div>
+    </aside>
+    <div class="info" id="assumptions"></div>
+  </section>
+  <p class="foot"><strong>Attenzione:</strong> il risultato non può confermare o misurare una perdita. Il sensore LED non equivale a una misura volumetrica precisa; vaporizzazione, riempimenti di unità portatili, condizioni iniziali e consumi non registrati possono alterare la stima. Se il livello è inatteso, applicare le procedure di verifica ed escalation senza attendere l'esaurimento stimato. La data di consegna non viene modificata automaticamente.</p>
+</main>
+<script>
+(function(){
+'use strict';
+const CAPACITY_L = 26500, PER_LED_L = CAPACITY_L/10;
+const $ = id => document.getElementById(id);
+const nf = new Intl.NumberFormat('it-IT',{maximumFractionDigits:0});
+const dec = n => new Intl.NumberFormat('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1}).format(n);
+const fmtL = n => nf.format(Math.round(n))+' L';
+function localToday(){ const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+function ymd(date){return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');}
+function dateOf(s){ if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return null;const p=s.split('-').map(Number), d=new Date(p[0],p[1]-1,p[2]); return d.getFullYear()===p[0] && d.getMonth()===p[1]-1 && d.getDate()===p[2] ? d:null;}
+function calendarDays(a,b){const dayUTC=d=>Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()); return Math.round((dayUTC(b)-dayUTC(a))/86400000);}
+function fmtPeriod(days){if(!Number.isFinite(days))return 'Non calcolabile';let h=days*24;return (h<24?dec(h)+' ore':dec(days)+' giorni ('+dec(h)+' ore)');}
+function readNumber(id){const v=$(id).value.trim();return v===''?NaN:Number(v);}
+function ledAt(liters){return Math.max(1,Math.min(10,Math.floor(Math.max(0,liters)/PER_LED_L)+1));}
+function hide(){ $('output').classList.remove('visible'); $('errors').textContent=''; }
+['last','next','led','flow1','hours1','flow2','hours2'].forEach(id=>$(id).addEventListener('input',hide));
+function compute(p){
+  const therapyDaily = (p.flow1*60*p.hours1)+(p.flow2*60*p.hours2);
+  const dElapsed=p.elapsed,dToNext=p.toNext;
+  const observedPrudent=Math.max(0,p.led-1)*PER_LED_L;
+  const prescribedUsed=therapyDaily*dElapsed;
+  // Per ricostruire il consumo si parte dal contenitore convenzionalmente pieno (26.500 L).
+  const theoreticalRemaining=Math.max(0,CAPACITY_L-prescribedUsed);
+  const expectedLed=ledAt(theoreticalRemaining);
+  // Il LED identifica una fascia, NON un volume puntuale: LED 4 => 7.950–10.600 L.
+  const observedUpper=Math.min(CAPACITY_L,p.led*PER_LED_L);
+  const gapMin=Math.max(0,theoreticalRemaining-observedUpper);
+  const gapMax=Math.max(0,theoreticalRemaining-observedPrudent);
+  const apparentExtraMinDaily=dElapsed>0?gapMin/dElapsed:null;
+  const apparentExtraMaxDaily=dElapsed>0?gapMax/dElapsed:null;
+  const extraMinLpm=apparentExtraMinDaily===null?null:apparentExtraMinDaily/1440;
+  const extraMaxLpm=apparentExtraMaxDaily===null?null:apparentExtraMaxDaily/1440;
+  // Entrambe le autonomie usano sempre il residuo prudenziale (LED osservato -1).
+  // La seconda adotta anche lo scenario di consumo aggiuntivo più prudente della fascia.
+  const normalDays=observedPrudent/therapyDaily;
+  const projectedDays=apparentExtraMaxDaily===null?null:observedPrudent/(therapyDaily+apparentExtraMaxDaily);
+  return {therapyDaily,theoreticalRemaining,observedPrudent,observedUpper,expectedLed,gapMin,gapMax,extraMinLpm,extraMaxLpm,normalDays,projectedDays,dToNext};
+}
+function submit(){
+  $('errors').textContent='';$('output').classList.remove('visible');
+  const today=localToday(), last=dateOf($('last').value), next=dateOf($('next').value);
+  const led=readNumber('led'),flow1=readNumber('flow1'),hours1=readNumber('hours1');
+  const flow2=$('flow2').value.trim()===''?0:readNumber('flow2');
+  const hours2=$('hours2').value.trim()===''?0:readNumber('hours2');
+  const err= msg=>{ $('errors').textContent=msg; return; };
+  if(!last || !next)return err('Inserisci entrambe le date.');
+  const elapsed=calendarDays(last,today), toNext=calendarDays(today,next);
+  if(elapsed<0)return err('La data dell’ultima consegna non può essere futura.');
+  if(toNext<0)return err('La prossima consegna risulta già trascorsa: verifica le date.');
+  if(!Number.isInteger(led)||led<1||led>10)return err('Seleziona un LED valido (da 1 a 10).');
+  if(!Number.isFinite(flow1)||flow1<0.1||!Number.isFinite(hours1)||hours1<=0||hours1>24)return err('Verifica flusso e ore della terapia principale (da 0 a 24 ore).');
+  if(!Number.isFinite(flow2)||!Number.isFinite(hours2)||flow2<0||hours2<0||hours2>24)return err('Verifica i valori della seconda terapia.');
+  if((flow2===0)!==(hours2===0))return err('Per la seconda terapia indica sia flusso sia ore, oppure lascia entrambi i campi vuoti.');
+  if(elapsed===0){
+    // Can show baseline autonomy, but cannot infer a trend without elapsed time.
+  }
+  const r=compute({led,flow1,hours1,flow2,hours2,elapsed,toNext});
+  $('theo').textContent=fmtL(r.theoreticalRemaining);
+  $('actual').textContent=fmtL(r.observedPrudent);
+  $('expected').textContent=String(r.expectedLed);
+  $('extra').textContent= elapsed>0 ? dec(r.extraMinLpm)+'–'+dec(r.extraMaxLpm)+' L/min' : 'Non stimabile';
+  $('extraHint').textContent= elapsed>0
+    ? (r.gapMax>0 ? 'Scostamento equivalente: '+fmtL(r.gapMin)+'–'+fmtL(r.gapMax)+' in '+elapsed+' giorni. La previsione di autonomia utilizza il valore maggiore (prudenziale).'
+      : 'Nessun consumo aggiuntivo ricavabile da questa lettura.')
+    : 'Serve almeno un giorno di intervallo dalla consegna.';
+  $('toNext').textContent=String(toNext);
+  $('usual').textContent=fmtPeriod(r.normalDays);
+  $('projected').textContent=elapsed>0 ? fmtPeriod(r.projectedDays) : 'Non stimabile';
+  $('ledStrip').innerHTML='';for(let x=10;x>=1;x--){const div=document.createElement('span');div.className='led'+(x<=led?' active '+(x<=1?'red':x<=3?'yellow':'green'):'');div.title='LED '+x;$('ledStrip').appendChild(div);}
+  $('ledLegend').textContent='Livello osservato: LED '+led+' · criterio prudenziale: '+Math.max(0,led-1)+' LED utilizzati.';
+  const msg=$('message');msg.className='alert';
+  if(led===1){msg.classList.add('high');msg.textContent='LED rosso: la riserva prudenziale convenzionale è 0 L. Non significa che il contenitore sia fisicamente vuoto. Seguire subito la procedura operativa prevista; questa stima non può giustificare attese.';}
+  else if(toNext===0){msg.textContent='La consegna risulta prevista oggi. L’orario non è disponibile: non è possibile concludere che l’autonomia copra la consegna. Verificare la gestione secondo procedura.';}
+  else if(elapsed===0){msg.textContent='Ultima consegna oggi: il consumo aggiuntivo non è stimabile con il solo dato della data. È disponibile soltanto l’autonomia prudenziale convenzionale.';}
+  else if(r.normalDays<toNext){msg.classList.add('high');msg.textContent='Attenzione: già con la sola terapia dichiarata, l’autonomia prudenziale potrebbe NON coprire i '+toNext+' giorni fino alla prossima consegna. Con il consumo aggiuntivo ipotizzato la durata potrebbe essere ancora inferiore. Seguire la procedura prevista.';}
+  else if(r.projectedDays<toNext){msg.classList.add('high');msg.textContent='Attenzione: se prosegue il consumo aggiuntivo stimato, l’autonomia prudenziale potrebbe NON coprire i '+toNext+' giorni fino alla prossima consegna. Eseguire le verifiche e seguire la procedura prevista.';}
+  else {msg.classList.add('low');msg.textContent='Il calcolo teorico prudenziale coprirebbe i '+toNext+' giorni fino alla prossima consegna. Non costituisce garanzia di disponibilità: eventuali anomalie vanno comunque gestite secondo procedura.';}
+  $('assumptions').innerHTML='<strong>Ipotesi e limiti del modello</strong><br>Per ricostruire il consumo si assume il contenitore <strong>pieno alla consegna: 26.500 L</strong>. Scala convenzionale: 10 LED, 2.650 L per LED. Il LED osservato identifica una fascia (es. LED 4: 7.950–10.600 L); <strong>entrambe le autonomie</strong> partono invece dal limite inferiore prudenziale (LED osservato − 1). Il consumo aggiuntivo è uno <strong>scostamento teorico, non una perdita misurata</strong>. La previsione prudenziale usa il massimo consumo aggiuntivo compatibile con la fascia LED, nell’ipotesi che persista. Le date senza orari e la scala approssimativa possono introdurre incertezza significativa. Nessuna previsione sostituisce la procedura operativa.';
+  $('output').classList.add('visible');$('output').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('calc').addEventListener('click',submit);
+})();
+</script>
+</body>
+</html>
