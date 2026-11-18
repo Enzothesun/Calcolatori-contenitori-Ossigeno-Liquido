@@ -28,6 +28,11 @@ button.secondary{background:#e8f2f0;color:#006e5f}
 .led.active.green{background:#32a778}.led.active.yellow{background:#e6b54d}.led.active.red{background:#e35e5d}
 .alert{border-left:4px solid #d5a138;background:#fff9ec;padding:13px 15px;border-radius:9px;margin:15px 0;line-height:1.5}
 .alert.high{border-color:#c65151;background:#fff1f1}.alert.low{border-color:#21987c;background:#e9f7f2}
+.alert .alert-title{font-weight:750;margin-bottom:7px;color:#8d2929}
+.alert.low .alert-title{color:#176e58}
+.alert .alert-comparison{margin:7px 0 9px;line-height:1.65}
+.alert .alert-comparison strong{font-weight:750}
+.alert .alert-action{margin-top:7px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .info{margin:15px 0 0;padding:14px;background:#f4f8fc;border-radius:9px;color:#405b72;font-size:13px;line-height:1.6}
 .err{color:#aa2d32;font-weight:600}.foot{margin:22px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
@@ -171,12 +176,37 @@ function submit(){
   $('ledStrip').innerHTML='';for(let x=10;x>=1;x--){const div=document.createElement('span');div.className='led'+(x<=led?' active '+(x<=1?'red':x<=3?'yellow':'green'):'');div.title='LED '+x;$('ledStrip').appendChild(div);}
   $('ledLegend').textContent='Livello osservato: LED '+led+' · criterio prudenziale: '+Math.max(0,led-1)+' LED utilizzati.';
   const msg=$('message');msg.className='alert';
-  if(led===1){msg.classList.add('high');msg.textContent='LED rosso: la riserva prudenziale convenzionale è 0 L. Non significa che il contenitore sia fisicamente vuoto. Seguire subito la procedura operativa prevista; questa stima non può giustificare attese.';}
-  else if(toNext===0){msg.textContent='La consegna risulta prevista oggi. L’orario non è disponibile: non è possibile concludere che l’autonomia copra la consegna. Verificare la gestione secondo procedura.';}
-  else if(elapsed===0){msg.textContent='Ultima consegna oggi: il consumo aggiuntivo non è stimabile con il solo dato della data. È disponibile soltanto l’autonomia prudenziale convenzionale.';}
-  else if(r.normalDays<toNext){msg.classList.add('high');msg.textContent='Attenzione: già con la sola terapia dichiarata, l’autonomia prudenziale potrebbe NON coprire i '+toNext+' giorni fino alla prossima consegna. Con il consumo aggiuntivo ipotizzato la durata potrebbe essere ancora inferiore. Seguire la procedura prevista.';}
-  else if(r.projectedDays<toNext){msg.classList.add('high');msg.textContent='Attenzione: se prosegue il consumo aggiuntivo stimato, l’autonomia prudenziale potrebbe NON coprire i '+toNext+' giorni fino alla prossima consegna. Eseguire le verifiche e seguire la procedura prevista.';}
-  else {msg.classList.add('low');msg.textContent='Il calcolo teorico prudenziale coprirebbe i '+toNext+' giorni fino alla prossima consegna. Non costituisce garanzia di disponibilità: eventuali anomalie vanno comunque gestite secondo procedura.';}
+  // Il confronto è subito leggibile durante la chiamata; i valori sono
+  // previsioni teoriche, non misure reali né garanzie di copertura.
+  const confronto = '<div class="alert-comparison">' +
+    'Autonomia con la sola terapia: <strong>' + fmtPeriod(r.normalDays) + '</strong><br>' +
+    'Autonomia se persiste il consumo aggiuntivo stimato: <strong>' +
+      (elapsed>0?fmtPeriod(r.projectedDays):'non stimabile') + '</strong><br>' +
+    'Tempo alla prossima consegna: <strong>' + toNext + ' giorni di calendario</strong>' +
+    '</div>';
+  if(led===1){
+    msg.classList.add('high');
+    msg.innerHTML='<div class="alert-title">LED rosso — verifica operativa immediata</div>'+
+      confronto+'<div class="alert-action">La riserva prudenziale convenzionale è 0 L: non significa che il contenitore sia fisicamente vuoto. Applicare subito la procedura prevista, senza attendere la previsione.</div>';
+  }else if(toNext===0){
+    msg.innerHTML='<div class="alert-title">Consegna prevista oggi</div>'+confronto+
+      '<div class="alert-action">Non conoscendo l’orario, non possiamo stabilire se l’autonomia copra la consegna. Verificare secondo procedura.</div>';
+  }else if(elapsed===0){
+    msg.innerHTML='<div class="alert-title">Consumo aggiuntivo non stimabile</div>'+confronto+
+      '<div class="alert-action">La consegna è avvenuta oggi: senza tempo trascorso, la lettura LED non consente una stima attendibile dello scostamento. Usare soltanto l’autonomia prudenziale convenzionale e applicare le verifiche previste.</div>';
+  }else if(r.normalDays<toNext){
+    msg.classList.add('high');
+    msg.innerHTML='<div class="alert-title">Possibile autonomia insufficiente già con la sola terapia</div>'+confronto+
+      '<div class="alert-action">Anche senza ipotizzare consumo aggiuntivo, la stima prudenziale non coprirebbe il periodo fino alla consegna. Verificare terapia effettiva e ricariche stroller; applicare la procedura operativa prevista.</div>';
+  }else if(r.projectedDays<toNext){
+    msg.classList.add('high');
+    msg.innerHTML='<div class="alert-title">Possibile autonomia insufficiente se persiste il consumo anomalo</div>'+confronto+
+      '<div class="alert-action">La sola terapia sembrerebbe coprire la consegna, ma lo scenario di consumo aggiuntivo prudenziale no. Verificare terapia effettiva e ricariche stroller; in presenza di anomalie seguire la procedura operativa prevista.</div>';
+  }else{
+    msg.classList.add('low');
+    msg.innerHTML='<div class="alert-title">Autonomia teorica compatibile con la prossima consegna</div>'+confronto+
+      '<div class="alert-action">È una proiezione indicativa, non una garanzia di disponibilità. Se il livello è inatteso, seguire comunque le verifiche e la procedura operativa.</div>';
+  }
   $('assumptions').innerHTML='<strong>Ipotesi e limiti del modello</strong><br>Per ricostruire il consumo si assume il contenitore <strong>pieno alla consegna: 26.500 L</strong>. Scala convenzionale: 10 LED, 2.650 L per LED. Il LED osservato identifica una fascia (es. LED 4: 7.950–10.600 L); <strong>entrambe le autonomie</strong> partono invece dal limite inferiore prudenziale (LED osservato − 1). Il consumo aggiuntivo è uno <strong>scostamento teorico, non una perdita misurata</strong>. La previsione prudenziale usa il massimo consumo aggiuntivo compatibile con la fascia LED, nell’ipotesi che persista. Le date senza orari e la scala approssimativa possono introdurre incertezza significativa. Nessuna previsione sostituisce la procedura operativa.';
   $('output').classList.add('visible');$('output').scrollIntoView({behavior:'smooth',block:'start'});
 }
