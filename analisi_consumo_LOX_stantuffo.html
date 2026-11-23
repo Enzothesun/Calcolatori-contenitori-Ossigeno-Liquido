@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analisi consumo LOX – Stantuffo</title>
+<style>
+:root{--bg:#f4f7fb;--surface:#fff;--text:#102c42;--muted:#627487;--accent:#008f7b;--border:#dfe8ef;--danger:#9b3332}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;font-size:15px}
+main{max-width:930px;margin:28px auto;padding:0 18px 45px}
+h1{font-size:26px;margin:0 0 6px;color:#003b70}h2{font-size:17px;margin:0 0 15px;color:#003b70}p{line-height:1.5}
+.subtitle{color:var(--muted);margin:0 0 22px}.card{background:var(--surface);border-radius:18px;padding:24px;margin-top:18px;box-shadow:0 5px 20px rgba(30,60,90,.07)}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 18px}.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+label{font-weight:600;font-size:13px;color:#34516a}
+input,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid #cbdbe5;background:#fff;font-size:15px;color:var(--text)}
+input:focus,select:focus{outline:2px solid #95d6cb;outline-offset:1px}
+.hint,.fine{font-size:12px;color:var(--muted);line-height:1.5}.hint{margin-top:10px}.actions{margin-top:20px;display:flex;flex-wrap:wrap;gap:10px}
+button{padding:12px 18px;border-radius:10px;border:none;background:var(--accent);color:white;font-weight:700;font-size:14px;cursor:pointer}
+.result{display:none}.result.visible{display:block}.metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:10px 0 15px}
+.metric{background:#f3f7fa;padding:16px;border-radius:12px;min-width:0}.metric .name{font-size:12px;color:var(--muted);line-height:1.4}.metric .num{font-weight:750;font-size:23px;margin-top:6px;overflow-wrap:anywhere}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}.scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:15px 0 7px}
+.segment{padding:7px 3px;border-radius:5px;background:#e2e7eb;color:#566b79;font-size:12px;text-align:center;font-weight:650}
+.segment.active{background:#c5e9dd;color:#08624b;outline:2px solid #188b74;outline-offset:-2px}.segment.active.zero{background:#fce0df;color:#9b3332;outline-color:#d14c4c}
+.alert{border-left:4px solid #d5a138;background:#fff9ec;padding:13px 15px;border-radius:9px;margin:15px 0;line-height:1.5}
+.alert.high{border-color:#c65151;background:#fff1f1}.alert.low{border-color:#21987c;background:#e9f7f2}
+.alert .alert-title{font-weight:750;margin-bottom:7px;color:#8d2929}.alert.low .alert-title{color:#176e58}
+.alert-comparison{margin:7px 0 9px;line-height:1.65}.alert-action{margin-top:7px}
+.info{margin:15px 0 0;padding:14px;background:#f4f8fc;border-radius:9px;color:#405b72;font-size:13px;line-height:1.6}
+.err{color:#aa2d32;font-weight:600}.foot{margin:22px 0 0;font-size:12px;color:var(--muted);line-height:1.6}
+small{font-size:12px}details{margin-top:16px}summary{cursor:pointer;color:#34516a;font-weight:650}details .fields{margin-top:12px}
+.call-check{margin:15px 0;padding:17px 18px;border:1px solid #c6d8e8;background:#f1f7fc;border-radius:12px}
+.call-check h3{margin:0 0 7px;font-size:15px;color:#003b70}.call-check p{margin:0 0 10px;font-size:13px;color:#425b70;line-height:1.5}
+.call-check ul{margin:0 0 10px;padding-left:20px;line-height:1.55;font-size:14px}.call-check li+li{margin-top:8px}
+.call-check .conclusion{border-top:1px solid #c6d8e8;padding-top:10px;font-size:13px;font-weight:650;color:#344f67}
+@media(max-width:660px){main{margin-top:18px}.fields,.metric-grid,.row{grid-template-columns:1fr}.card{padding:18px}h1{font-size:23px}}
+@media print{body{background:#fff}.card{box-shadow:none;border:1px solid #ddd}.actions{display:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Analisi consumo LOX – Stantuffo</h1>
+  <p class="subtitle">Confronto teorico tra terapia, posizione dello stantuffo e prossima consegna. Uso interno: supporto orientativo, non diagnosi di perdita.</p>
+  <section class="card">
+    <h2>Dati raccolti durante la chiamata</h2>
+    <div class="fields">
+      <div class="field"><label for="last">Data ultima consegna</label><input id="last" type="date" required></div>
+      <div class="field"><label for="next">Data prossima consegna</label><input id="next" type="date" required></div>
+      <div class="field"><label for="level">Posizione dello stantuffo adesso</label><select id="level">
+        <option value="">Seleziona</option>
+        <option value="1/1">1/1 – Pieno</option>
+        <option value="3/4">3/4 – Alto</option>
+        <option value="1/2">1/2 – Metà</option>
+        <option value="1/4">1/4 – Basso</option>
+        <option value="0">0 – Da considerare finito</option>
+      </select></div>
+      <div class="field"><label for="flow1">Terapia principale – flusso (L/min)</label><input id="flow1" type="number" min="0.1" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label for="hours1">Terapia principale – ore/giorno</label><input id="hours1" type="number" min="0.1" max="24" step="0.5" inputmode="decimal"></div>
+    </div>
+    <details><summary>Seconda terapia (facoltativa)</summary><div class="fields">
+      <div class="field"><label for="flow2">Seconda terapia – flusso (L/min)</label><input id="flow2" type="number" min="0" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label for="hours2">Seconda terapia – ore/giorno</label><input id="hours2" type="number" min="0" max="24" step="0.5" inputmode="decimal"></div>
+    </div><p class="fine">Se usate entrambe, le due terapie vengono sommate. Inserire valori coerenti con la prescrizione.</p></details>
+    <div class="hint">Il calcolo usa la <strong>data odierna del dispositivo</strong>. Non conoscendo gli orari delle consegne, i giorni sono approssimati per calendario. L'indicatore a stantuffo ha pochi riferimenti: la lettura è orientativa.</div>
+    <div class="actions"><button id="calc" type="button">Calcola la valutazione</button></div>
+    <div id="errors" class="err" aria-live="polite" style="margin-top:12px"></div>
+  </section>
+  <section id="output" class="card result" aria-live="polite">
+    <h2>Valutazione teorica</h2>
+    <h2 style="margin-top:4px">Autonomia stimata dal momento della chiamata</h2>
+    <div class="row">
+      <div class="metric"><div class="name">Autonomia con la sola terapia dichiarata</div><div class="num" id="usual"></div></div>
+      <div class="metric"><div class="name">Autonomia se prosegue il ritmo di consumo stimato</div><div class="num" id="projected"></div></div>
+    </div>
+    <div id="message" class="alert"></div>
+    <h2 style="margin-top:25px">Dettaglio della valutazione</h2>
+    <div id="levelStrip" class="scale" aria-hidden="true"></div>
+    <p id="levelLegend" class="fine"></p>
+    <div class="metric-grid">
+      <div class="metric"><div class="name">Ossigeno che dovrebbe essere rimasto</div><div class="num" id="theo"></div></div>
+      <div class="metric"><div class="name">Ossigeno stimato dalla posizione dello stantuffo</div><div class="num" id="actual"></div></div>
+      <div class="metric"><div class="name">Posizione teoricamente attesa</div><div class="num" id="expected"></div></div>
+    </div>
+    <div class="row">
+      <div class="metric"><div class="name">Consumo aggiuntivo medio apparente</div><div class="num" id="extra"></div><div class="fine" id="extraHint"></div></div>
+      <div class="metric"><div class="name">Giorni mancanti alla prossima consegna</div><div class="num" id="toNext"></div><div class="fine">Basati sulle sole date, non sugli orari.</div></div>
+    </div>
+    <aside class="call-check">
+      <h3>Prima di interpretare lo scostamento: verifiche con il paziente</h3>
+      <p>Il risultato è teorico. Durante la stessa chiamata, verificare sempre:</p>
+      <ul>
+        <li><strong>Terapia realmente effettuata.</strong> Il paziente ha rispettato flusso e ore indicati? In uno o più giorni ha aumentato il flusso o usato l’ossigeno più a lungo (anche su indicazione medica)?</li>
+        <li><strong>Utilizzo dello stroller.</strong> Ha ricaricato il portatile dal contenitore base? Quante volte, indicativamente, dall’ultima consegna?</li>
+      </ul>
+      <div class="conclusion">Un consumo superiore al previsto non dimostra una perdita: aumenti di terapia e ricariche dello stroller possono spiegare parte dello scostamento. In presenza di dubbi o anomalie, applicare la procedura di verifica ed escalation prevista.</div>
+    </aside>
+    <div class="info" id="assumptions"></div>
+  </section>
+  <p class="foot"><strong>Attenzione:</strong> i valori dello stantuffo sono riferimenti approssimativi, non una misura volumetrica precisa. Evaporazione, riempimenti di unità portatili, condizioni iniziali e consumi non registrati possono alterare la stima. Se il livello è inatteso, applicare la procedura di verifica ed escalation senza attendere l'esaurimento previsto. La data di consegna non viene modificata automaticamente.</p>
+</main>
+<script>
+(function(){
+'use strict';
+const CAPACITY_L=26500;
+// Valori identici al calcolatore a stantuffo pubblicato nell'Hub.
+const LEVELS={'1/1':26500,'3/4':19875,'1/2':13250,'1/4':6625,'0':3000};
+const ORDER=['0','1/4','1/2','3/4','1/1'];
+const $=id=>document.getElementById(id);
+const nf=new Intl.NumberFormat('it-IT',{maximumFractionDigits:0});
+const dec=n=>new Intl.NumberFormat('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1}).format(n);
+const fmtL=n=>nf.format(Math.round(n))+' L';
+function localToday(){const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+function dateOf(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return null;const p=s.split('-').map(Number),d=new Date(p[0],p[1]-1,p[2]);return d.getFullYear()===p[0]&&d.getMonth()===p[1]-1&&d.getDate()===p[2]?d:null;}
+function calendarDays(a,b){const utc=d=>Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());return Math.round((utc(b)-utc(a))/86400000);}
+function fmtPeriod(days){if(!Number.isFinite(days))return 'Non calcolabile';const h=days*24;return h<24?dec(h)+' ore':dec(days)+' giorni ('+dec(h)+' ore)';}
+function readNumber(id){const v=$(id).value.trim();return v===''?NaN:Number(v);}
+function expectedRange(L){
+  if(L>=26500)return '1/1 (pieno)';
+  if(L>=19875)return 'Tra 3/4 e 1/1';
+  if(L>=13250)return 'Tra 1/2 e 3/4';
+  if(L>=6625)return 'Tra 1/4 e 1/2';
+  if(L>=3000)return 'Tra 0 e 1/4';
+  return 'Sotto 0 (area critica)';
+}
+function hide(){$('output').classList.remove('visible');$('errors').textContent='';}
+['last','next','level','flow1','hours1','flow2','hours2'].forEach(id=>$(id).addEventListener('input',hide));
+function compute(p){
+  const therapyDaily=(p.flow1*60*p.hours1)+(p.flow2*60*p.hours2);
+  const theoreticalRemaining=Math.max(0,CAPACITY_L-therapyDaily*p.elapsed);
+  const levelLiters=LEVELS[p.level];
+  const gap=Math.max(0,theoreticalRemaining-levelLiters);
+  const extraDaily=p.elapsed>0?gap/p.elapsed:null;
+  const extraLpm=extraDaily===null?null:extraDaily/1440;
+  // Livello 0: ~3000 L sono un riferimento fisico; il contenitore e' da considerare finito.
+  const usableLiters=p.level==='0'?0:levelLiters;
+  const normalDays=usableLiters/therapyDaily;
+  const projectedDays=extraDaily===null?null:usableLiters/(therapyDaily+extraDaily);
+  return {therapyDaily,theoreticalRemaining,levelLiters,usableLiters,gap,extraDaily,extraLpm,normalDays,projectedDays,expected:expectedRange(theoreticalRemaining)};
+}
+function submit(){
+  $('errors').textContent='';$('output').classList.remove('visible');
+  const today=localToday(),last=dateOf($('last').value),next=dateOf($('next').value);
+  const level=$('level').value,flow1=readNumber('flow1'),hours1=readNumber('hours1');
+  const flow2=$('flow2').value.trim()===''?0:readNumber('flow2');
+  const hours2=$('hours2').value.trim()===''?0:readNumber('hours2');
+  const err=s=>{$('errors').textContent=s;return;};
+  if(!last||!next)return err('Inserisci entrambe le date.');
+  const elapsed=calendarDays(last,today),toNext=calendarDays(today,next);
+  if(elapsed<0)return err('La data dell’ultima consegna non può essere futura.');
+  if(toNext<0)return err('La prossima consegna risulta già trascorsa: verifica le date.');
+  if(!Object.prototype.hasOwnProperty.call(LEVELS,level))return err('Seleziona una posizione dello stantuffo.');
+  if(!Number.isFinite(flow1)||flow1<0.1||!Number.isFinite(hours1)||hours1<=0||hours1>24)return err('Verifica flusso e ore della terapia principale.');
+  if(!Number.isFinite(flow2)||!Number.isFinite(hours2)||flow2<0||hours2<0||hours2>24)return err('Verifica la seconda terapia.');
+  if((flow2===0)!==(hours2===0))return err('Per la seconda terapia indica sia flusso sia ore, oppure lascia entrambi i campi vuoti.');
+  const r=compute({level,flow1,hours1,flow2,hours2,elapsed});
+  $('theo').textContent=fmtL(r.theoreticalRemaining);
+  $('actual').textContent=fmtL(r.levelLiters)+(level==='0'?' (non considerati disponibili)':'');
+  $('expected').textContent=r.expected;
+  $('extra').textContent=elapsed>0?dec(r.extraLpm)+' L/min':'Non stimabile';
+  $('extraHint').textContent=elapsed>0
+    ?'Scostamento rispetto alla posizione segnalata: '+fmtL(r.gap)+' in '+elapsed+' giorni. Valore orientativo, senza intervallo di precisione certificato.'
+    :'Serve almeno un giorno di intervallo dalla consegna.';
+  $('toNext').textContent=String(toNext);
+  $('usual').textContent=fmtPeriod(r.normalDays);
+  $('projected').textContent=elapsed>0?fmtPeriod(r.projectedDays):'Non stimabile';
+  $('levelStrip').innerHTML='';
+  ORDER.forEach(x=>{const n=document.createElement('span');n.className='segment'+(x===level?' active'+(x==='0'?' zero':''):'');n.textContent=x;$('levelStrip').appendChild(n);});
+  $('levelLegend').textContent='Posizione segnalata: '+level+' · riferimento convenzionale: '+fmtL(r.levelLiters)+'. Nessuna sottrazione automatica di una posizione.';
+  const msg=$('message');msg.className='alert';
+  const confronto='<div class="alert-comparison">'+
+    'Autonomia con la sola terapia: <strong>'+fmtPeriod(r.normalDays)+'</strong><br>'+
+    'Autonomia se persiste il consumo aggiuntivo stimato: <strong>'+(elapsed>0?fmtPeriod(r.projectedDays):'non stimabile')+'</strong><br>'+
+    'Tempo alla prossima consegna: <strong>'+toNext+' giorni di calendario</strong></div>';
+  if(level==='0'){
+    msg.classList.add('high');
+    msg.innerHTML='<div class="alert-title">Stantuffo su 0 — contenitore da considerare finito</div>'+confronto+
+      '<div class="alert-action">Il calcolatore attuale associa convenzionalmente circa 3.000 L allo 0, ma dispone di considerare il contenitore finito e da sostituire. Non usare quei litri per rassicurare sull’autonomia. Seguire subito la procedura operativa.</div>';
+  }else if(toNext===0){
+    msg.innerHTML='<div class="alert-title">Consegna prevista oggi</div>'+confronto+
+      '<div class="alert-action">L’orario di consegna non è noto. Verificare la situazione secondo procedura.</div>';
+  }else if(elapsed===0){
+    msg.innerHTML='<div class="alert-title">Consumo aggiuntivo non stimabile</div>'+confronto+
+      '<div class="alert-action">La consegna è avvenuta oggi: non è possibile stimare un consumo medio aggiuntivo nel tempo. Non ricavare conclusioni dall’indicatore.</div>';
+  }else if(r.normalDays<toNext){
+    msg.classList.add('high');
+    msg.innerHTML='<div class="alert-title">Possibile autonomia insufficiente anche con la sola terapia</div>'+confronto+
+      '<div class="alert-action">La stima basata sul livello di riferimento non coprirebbe la prossima consegna. Verificare terapia e stroller, applicando la procedura prevista.</div>';
+  }else if(r.projectedDays<toNext){
+    msg.classList.add('high');
+    msg.innerHTML='<div class="alert-title">Possibile autonomia insufficiente se persiste il consumo aggiuntivo</div>'+confronto+
+      '<div class="alert-action">La sola terapia sembrerebbe coprire la prossima consegna, ma la proiezione con consumo aggiuntivo no. Verificare terapia e stroller, applicando la procedura prevista.</div>';
+  }else{
+    msg.classList.add('low');
+    msg.innerHTML='<div class="alert-title">Autonomia teorica compatibile con la prossima consegna</div>'+confronto+
+      '<div class="alert-action">La lettura dello stantuffo è approssimativa: non è una garanzia di durata. Se il livello è inatteso, seguire comunque la procedura prevista.</div>';
+  }
+  $('assumptions').innerHTML='<strong>Ipotesi e limiti del modello</strong><br>Si assume un contenitore <strong>pieno alla consegna (26.500 L)</strong>. Valori utilizzati dal calcolatore a stantuffo in produzione: pieno 26.500 L; 3/4 19.875 L; metà 13.250 L; 1/4 6.625 L; 0 circa 3.000 L (<strong>da considerare finito</strong>). I valori sono <strong>punti convenzionali di riferimento</strong>, non fasce certificate: non applichiamo il criterio −1 LED, che appartiene a un indicatore diverso. La previsione del consumo aggiuntivo usa la differenza rispetto al valore associato alla posizione segnalata; non è una misura della perdita. La risoluzione grossolana dello stantuffo e le date senza orari introducono incertezza importante. La previsione non determina automaticamente una nuova consegna.';
+  $('output').classList.add('visible');$('output').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('calc').addEventListener('click',submit);
+})();
+</script>
+</body>
+</html>
